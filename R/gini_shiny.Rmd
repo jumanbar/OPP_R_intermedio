@@ -1,0 +1,243 @@
+---
+title: "Índice Gini"
+author: "JMB"
+date: "11/9/2019"
+output:
+  html_document:
+    df_print: paged
+    highlight: zenburn
+    theme: sandstone
+    toc: yes
+    toc_float: yes
+    collapsed: no
+    toc_depth: 5
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+library(haven)
+library(acid)
+library(tidyverse)
+library(DT)
+library(shinyWidgets)
+load("../salidas/ipc.RData")
+load("../salidas/hog.RData")
+```
+
+# Introducción
+
+> (tomado de wikipedia)
+
+El coeficiente de Gini es una medida de la desigualdad ideada por el estadístico italiano Corrado Gini. Normalmente se utiliza para medir la desigualdad en los ingresos, dentro de un país, pero puede utilizarse para medir cualquier forma de distribución desigual. El coeficiente de Gini es un número entre 0 y 1, en donde 0 se corresponde con la perfecta igualdad (todos tienen los mismos ingresos) y donde el valor 1 se corresponde con la perfecta desigualdad (una persona tiene todos los ingresos y los demás ninguno). El índice de Gini es el coeficiente de Gini expresado en referencia a 100 como máximo, en vez de 1, y es igual al coeficiente de Gini multiplicado por 100. Una variación de dos céntesimas del coeficiente de Gini (o dos unidades del índice) equivale a una distribución de un 7% de riqueza del sector más pobre de la población (por debajo de la mediana) al más rico (por encima de la mediana).
+
+## Enfoque y fuente de datos
+
+En este documento nos concentraremos en el índice de Gini calculado para los ingresos por hogar en Uruguay, utilizando los datos de la [Encuesta Continua de Hogares](http://www.ine.gub.uy/encuesta-continua-de-hogares1) (ECH), entre los años 2011 y 2018, ajustando los valores según el [Índice de Precios del Consumo](http://www.ine.gub.uy/ipc-indice-de-precios-al-consumo) (base: diciembre 2010 = 100).
+
+## Método de cálculo
+
+La fórmula del índice Gini puede escribirse como:
+
+$$
+G = \frac{\displaystyle\sum_{i=1}^{n}
+          \displaystyle\sum_{j=1}^{n} |x_i - x_j|}
+         {2n^2 \overline{x}}
+$$
+
+En donde $x_i$ es el ingreso iésimo (hogar nro. i) del conjunto total de hogares, $n$ es el total de hogares y $\overline{x}$ es el ingreso promedio del conjunto de datos.
+
+> Nota: esta fórmula no hace el cálculo **ponderado** del Gini.
+
+Es más fácil de entender con la llamada [curva de Lorentz](https://en.wikipedia.org/wiki/Lorenz_curve). A continuación se muestra un ejemplo de código y la gráfica resultante, la cual ilustra la relación entre esta curva y el índice de Gini:
+
+
+```{r curva_lorentz}
+h18 <- read_sav("../datos/H_2018_Terceros.zip") %>% as_factor
+gini18 <- round(weighted.gini(h18$ht11, h18$pesoano)$Gini, 2)
+h18 %>%
+  select(income = YHOG, pesoano) %>%
+  # thin down to just a sample of 10,000 to save on vector graphic file size:
+  # sample_n(10000) %>%
+  arrange(income) %>%
+  mutate(cum_prop_inc = cumsum(income) / sum(income),
+         seq = 1:n() / n()) %>%
+  ggplot(aes(x = seq, y = cum_prop_inc)) +
+  geom_line() +
+  geom_ribbon(aes(ymax = seq, ymin = cum_prop_inc), fill = "steelblue", alpha = 0.2) +
+  geom_abline(intercept = 0, slope = 1, colour = "steelblue") +
+  labs(x = "Proporción poblacional acumulativa, del más pobre al más rico",
+       y = "Proporción de ingresos acumulativa") +
+  annotate("text", x = c(0.6, 0.95), y = c(0.4, 0.05), label = c("A", "B"), size = 7) +
+  annotate("text", x = 0.5, y = 0.6, label = "Línea of equitatividad", angle = 45) +
+  annotate("text", x = 0.8, y = 0.20, label = "Distribución observada", angle = 45) +
+  coord_equal() +
+  ggtitle("Curva de Lorentz para ingresos por hogar (ht11) en 2018",
+          paste("El coeficiente Gini global es", gini18))
+```
+
+([Código adaptado de aquí.](http://freerangestats.info/blog/2017/08/05/weighted-gini))
+
+El coeficiente de Gini se calcula como una proporción de las áreas en el diagrama de la curva de Lorenz. Si el área entre la línea de perfecta igualdad y la curva de Lorenz es **A**, y el área por debajo de la curva de Lorenz es **B**, entonces el coeficiente de Gini es $\frac{A}{A+B}$. 
+
+En el caso particular de este documento, usaremos el [paquete `acid`](https://cran.r-project.org/web/packages/acid/index.html), el cual cuenta con la función `weighted.gini`, que nos permitirá **calcular el coeficiente Gini de manera ponderada**.
+
+# Métodos
+
+## Código fuente y datos
+
+El proyecto entero se encuentra en el repositorio [xxxxx](enlace.com), organizado en las siguientes carpetas:
+
+- **datos**: archivos .zip con tablas de datos de la ECH para los años entre 2011 y 2018 (inclusive), así como la tabla con los valores del IPC entre Enero de 2011 y Octubre de 2019 (archivo *.xls).  
+- **R**: código fuente R o R Markdwon.  
+- **salidas**: archivos generados con el código R, generalmente a partir de los datos presentes en la carpeta datos. Pueden ser archivos utilizados de forma posterior por código R, por lo que son "salidas" pero también "entradas".
+
+## Limpieza de datos
+
+El código R encontrado en los archivos ipc.R y hogares.R fue utilizado para importar y arreglar las tablas de datos.
+
+### hogares.R
+
+El código en este archivo sirve para importar las 8 tablas con datos de la ECH a la sesión de R y crear una única tabla (`hog`) con datos de todos estos años (para un grupo de columnas seleccionadas), la cual se exporta como `hog.RData` en la carpeta salidas.
+
+### ipc.R
+
+El código de este archivo importa la tabla en el archivo Excel `IPC 4 indvar_ div M_B10_Tot Pais_Int y Mon.xls` y crea la tabla `ipc`, la cual es guardada en el archivo `ipc.RData` en la carpeta salidas.
+
+El código aquí presentado asume que ambos archivos, `hog.RData` e `ipc.RData` ya fueron cargados a la sesión de R con la función `load`.
+
+# Resultados
+
+## Gini anual en Uruguay
+
+1ro. Modificar las tablas hog e ipc. En hog dividir montevideo del interior (son las categorías que tiene IPC):
+
+```{r arreglo_hog}
+hog <- hog %>% 
+  mutate(mvdint = ifelse(region_3 == 1, "Montevideo", "Interior"))
+```
+
+En ipc quedarnos solamente con el índice general (código 00) y pivotear la tabla para que todos los valores de IPC estén en la misma columna:
+
+```{r arreglo_ipc}
+ipc <-
+  ipc %>% 
+  filter(Codigo == "00") %>% 
+  dplyr::select(anio:Nombre, ipc_Mvd, ipc_Int) %>% 
+  pivot_longer(starts_with("ipc"), names_to = "mvdint", values_to = "ipc") %>% 
+  mutate(mvdint = ifelse(mvdint == "ipc_Mvd", "Montevideo", "Interior"),
+         ipc = as.numeric(ipc))
+```
+
+
+Finalmente, fusionar las dos tablas con un Left Join. Notar que luego de la fusión, creo la columna `ingr` (tal vez no es el mejor nombre), **dividiendo el YSVL por el valor de IPC para el año y mes correspondiente** (YSVL: Ingreso total del hogar _sin_ valor locativo y _sin_ servicio doméstico).
+
+```{r left_join}
+fusion <-
+  left_join(hog, ipc) %>% 
+  mutate(ingr = ysvl / ipc)
+```
+
+Con un `group_by` + `summarise`, además de la función `weighted.gini`, calculo los índices anuales para el país:
+
+```{r tabla_gini_anio}
+gini_anio <- 
+  fusion %>% 
+  group_by(anio) %>% 
+  summarise(Gini = weighted.gini(ingr, pesoano)$Gini)
+gini_anio %>% 
+  rename(`Año` = anio, `Índice Gini UY` = Gini)
+```
+
+La siguiente gráfica muestra los índices GIni anuales en una escala del 0 al 100%.
+
+```{r gini_bar, fig.cap="Índice Gini anual para todo el país."}
+p <- gini_anio %>% 
+  ggplot() +
+  aes(anio, Gini)
+
+p + geom_col() + scale_y_continuous(limits = c(0, 1), labels = scales::percent)
+```
+
+Es claro que los cambios que han habido son sutiles a esta escala. Para detectar tendencias es necesario graficar en un rango de valores más acotados:
+
+```{r gini_tendencia}
+p + geom_line() + geom_point()
+```
+
+## Gini anual por Departamentos
+
+Cálculos por departamento. Primero debe hacerse una tabla "larga" (que también usaremos para graficar con ggplot):
+
+```{r tabla_gini_anio_dpto}
+gini_anio_dpto <- 
+  fusion %>% 
+  group_by(anio, nomdpto) %>% 
+  summarise(Gini = weighted.gini(ingr, pesoano)$Gini)
+gini_anio_dpto
+```
+
+La cual luego debe ensancharse para visualizar en un formato más amigable al ojo humano:
+
+```{r tabla_gini_anio_dpto_wide}
+gini_anio_dpto_wide <- 
+  gini_anio_dpto %>% 
+  pivot_wider(nomdpto, names_from = anio, 
+              values_from = Gini, names_prefix = "gini_")
+  
+gini_anio_dpto_wide %>% 
+  rename(Departamento = nomdpto) %>% 
+  rename_at(vars(starts_with("gini_")), ~ gsub("gini_", "", .)) %>% 
+  mutate_at(vars(-1), ~ round(100 * ., 2))
+```
+
+Luego volveremos a usar la tabla larga para graficar la tendencia en todos los departamentos:
+
+```{r, fig.cap="Tendencia del índice Gini por departamentos.", cache = FALSE}
+pickerInput(
+  inputId = "dptos",
+  label = span(icon("map-marker-alt"), "Departamentos:"),
+  choices = sort(unique(gini_anio_dpto$nomdpto)),
+  selected = sort(unique(gini_anio_dpto$nomdpto)),
+  options = list(
+  `deselect-all-text` = "Ninguno",
+  `select-all-text` = "Todos",
+  `actions-box` = TRUE,
+  `live-search` = TRUE,
+  size = 19
+  ),
+  multiple = TRUE
+  )
+
+renderPlot({
+  gini_anio_dpto %>% 
+    filter(nomdpto %in% input$dptos) %>% 
+    ggplot() +
+    aes(anio, Gini, col = nomdpto) +
+    geom_line() + 
+    geom_text(data = filter(gini_anio_dpto, anio %in% c(2011, 2018)), 
+              aes(label = nomdpto), 
+              hjust = "outward") +
+    scale_y_continuous(labels = scales::percent) +
+    scale_x_continuous(limits = c(2009, 2020), breaks = 2011:2018, minor_breaks = NULL) +
+    theme(legend.position="none") +
+    xlab("Año") + ylab("Gini (%)")
+})
+
+```
+
+Finalmente, un dato interesante puede ser la comparación entre el primer y último año para cada departamento:
+```{r tabla_gini_diff}
+gini_anio_dpto_wide <- 
+  gini_anio_dpto %>% 
+  pivot_wider(nomdpto, names_from = anio, 
+              values_from = Gini, names_prefix = "gini_")
+
+gini_anio_dpto_wide %>% 
+  mutate(dif = gini_2018 - gini_2011) %>% 
+  select(nomdpto, gini_2011, gini_2018, dif) %>% 
+  arrange(dif) %>% 
+  mutate_at(vars(-1), ~ round(100 * ., 2)) %>% 
+  rename(Departamento = nomdpto, `2011` = gini_2011, `2018` = gini_2018,
+         Diferencia = dif)
+```
