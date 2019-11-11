@@ -4,7 +4,7 @@
 
 > Pablo, Santiago, Joaquín y Gabriela
 
-Automatiación de informes de la base de datos de Empresas Públicas.
+Automatización de informes de la base de datos de Empresas Públicas.
 
 - [R Markdown x Word](https://rmarkdown.rstudio.com/articles_docx.html)
 
