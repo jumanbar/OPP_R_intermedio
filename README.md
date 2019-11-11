@@ -2,7 +2,7 @@
 
 ## EPUB
 
-> Pablo, Santiago, Joaquín y Gabriela - EPUB
+> Pablo, Santiago, Joaquín y Gabriela
 
 Automatiación de informes de la base de datos de Empresas Públicas.
 
@@ -12,7 +12,7 @@ Automatiación de informes de la base de datos de Empresas Públicas.
 
 ## Simuladoras
 
-> Andrea, Paula, Nora y Evelin - Simuladoras
+> Andrea, Paula, Nora y Evelin
 
 Creación de una interfaz gráfica amigable para seleccionar los parámetros de ejecución del simulador de políticas públicas.
 
@@ -26,13 +26,13 @@ Tema a definir.
 
 ## Alberto SA
 
-> Emiliano, Gimena, Estefani - Alberto SA
+> Emiliano, Gimena y Estefani
 
 Tema a definir (involucrará ECH y separación de datos por departamentos y años).
 
 ## Resto Bar
 
-> Daniel, Juan Manuel, Federico - Resto Bar
+> Daniel, Juan Manuel y Federico
 
 DEA ([Data Envelopment Analysis](https://en.wikipedia.org/wiki/Data_envelopment_analysis)): análisis de eficiencia de diversos servicios, como pueden ser comisarías, policlínicas, etc...
 
