@@ -16,6 +16,8 @@ Automatización de informes de la base de datos de Empresas Públicas.
 
 Creación de una interfaz gráfica amigable para seleccionar los parámetros de ejecución del simulador de políticas públicas.
 
+- [Demos de widgets iniciales de shiny](https://shiny.rstudio.com/gallery/widget-gallery.html)
+
 - [Demos del paquete shinyWidgets](http://shinyapps.dreamrs.fr/shinyWidgets/)
 
 ## Independiente FC
