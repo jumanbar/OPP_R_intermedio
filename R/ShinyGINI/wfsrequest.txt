@@ -1,0 +1,1 @@
+http://www.dinama.gub.uy/geoserver/u19600217/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=u19600217:c004&outputFormat=SHAPE-ZIP
