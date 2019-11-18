@@ -63,8 +63,8 @@ server <- function(input, output) {
       paste('param-simulador-', Sys.Date(), '.RData', sep='')
     },
     content = function(con) {
-      objeto <- lista_param()
-      save(objeto, file = con)
+      parametros <- lista_param()
+      save(parametros, file = con)
     }
   )
   
